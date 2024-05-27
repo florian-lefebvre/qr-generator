@@ -1,5 +1,5 @@
 ---
-
+const title = "QR Code generator";
 ---
 
 <html lang="en">
@@ -8,79 +8,139 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>Astro</title>
+    <title>{title}</title>
   </head>
-  <body>
-    <h1>Astro</h1>
-    <form>
-      <label for="qr_text">Text</label>
-      <input id="qr_text" name="qr_text" type="text" />
-      <button type="submit">Generate</button>
-    </form>
-    <div id="qr"></div>
-    <button id="download" disabled type="button">Download</button>
-    <script>
-      import { renderSVG } from "uqr";
-
-	  // Initialize constants
-      let svg = "";
-      const WIDTH = 1024;
-      const qrTextEl = document.getElementById("qr_text")! as HTMLInputElement;
-      const qrEl = document.getElementById("qr")! as HTMLDivElement;
-      const downloadEl = document.getElementById(
-        "download"
-      )! as HTMLButtonElement;
-
-	  // Helper function to trigger a file download
-      const download = (href: string, name: string) => {
-        const a = document.createElement("a");
-
-        a.download = name;
-        a.href = href;
-
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      };
-
-	  // Updates state
-      const createQr = (text: string) => {
-        svg = renderSVG(text);
-        qrEl.innerHTML = svg;
-        downloadEl.disabled = false;
-      };
-
-	  // Handle svg download
-      downloadEl.addEventListener("click", () => {
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d")!;
-
-        canvas.width = WIDTH;
-        canvas.height = WIDTH;
-
-        const image = new Image();
-        image.addEventListener(
-          "load",
-          () => {
-            context.fillStyle = context.createPattern(image, "no-repeat")!;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-            download(canvas.toDataURL("image/png"), "qrcode.png");
-            canvas.remove();
-          },
-          { once: true }
+  <body class="bg-white text-stone-700 dark:bg-stone-950 dark:text-stone-200">
+    <div class="max-w-96 mx-auto py-8 px-4">
+      <h1 class="text-2xl sm:text-4xl mb-4 text-center">{title}</h1>
+      <form id="form" class="grid grid-cols-1">
+        <label for="qr_text">Your text</label>
+        <textarea
+          id="qr_text"
+          name="qr_text"
+          class="border bg-stone-100 dark:bg-stone-900 border-stone-400 dark:border-stone-700 rounded px-1 min-h-8 focus:outline-none focus:ring focus:ring-blue-500 [field-sizing:content]"
+        ></textarea>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <button
+            type="submit"
+            class="bg-blue-700 text-blue-50 text-lg text-center px-2 py-1.5 rounded hover:brightness-90 transition-all"
+          >
+            Generate</button
+          >
+          <a
+            href="/"
+            class="bg-stone-700 text-stone-50 text-lg text-center px-2 py-1.5 rounded hover:brightness-90 transition-all"
+            >Reset</a
+          >
+        </div>
+        <div
+          id="qr"
+          class="aspect-square max-w-96 mt-6 -mx-4 [&>svg]:dark:invert"
+        >
+          <div class="h-full w-full p-4">
+            <div
+              class="h-full w-full bg-stone-100 flex items-center justify-center text-center"
+            >
+              <p class="text-balance text-lg">
+                Type something in the box above and hit "Generate"!
+              </p>
+            </div>
+          </div>
+        </div>
+        <button
+          id="download"
+          disabled
+          type="button"
+          class="bg-blue-700 text-blue-50 text-lg text-center mt-2 px-2 py-1.5 rounded w-full disabled:opacity-50 hover:brightness-90 disabled:hover:brightness-100 transition-all"
+          >Download</button
+        >
+        <a
+          href="https://github.com/florian-lefebvre/qr-generator"
+          target="_blank"
+          class="text-lg text-center mt-2 px-2 py-1.5 rounded w-full hover:brightness-90 transition-all underline"
+          >Source code</a
+        >
+      </form>
+      <script is:inline>
+        // Inline to avoid FOUC
+        const initialText = new URLSearchParams(window.location.search).get(
+          "qr_text"
         );
+        if (initialText && initialText !== "") {
+          document.getElementById("qr_text").value = initialText;
+        }
+      </script>
+      <script>
+        import { renderSVG } from "uqr";
 
-        image.src = "data:image/svg+xml;base64," + btoa(svg);
-      });
+        // Initialize constants
+        let svg = "";
+        const WIDTH = 1024;
+        const formEl = document.getElementById("form")! as HTMLFormElement;
+        const qrTextEl = document.getElementById(
+          "qr_text"
+        )! as HTMLTextAreaElement;
+        const qrEl = document.getElementById("qr")! as HTMLDivElement;
+        const downloadEl = document.getElementById(
+          "download"
+        )! as HTMLButtonElement;
 
-	  // Handle query param
-      const initialText = new URLSearchParams(window.location.search).get(
-        "qr_text"
-      );
-      if (initialText) {
-        qrTextEl.value = initialText;
-        createQr(initialText);
-      }
-    </script>
+        // Helper function to trigger a file download
+        const download = (href: string, name: string) => {
+          const a = document.createElement("a");
+
+          a.download = name;
+          a.href = href;
+
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+
+        // Updates state
+        const createQr = (text: string) => {
+          svg = renderSVG(text);
+          qrEl.innerHTML = svg;
+          downloadEl.disabled = false;
+        };
+
+        qrTextEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            formEl.submit();
+          }
+        });
+
+        // Handle svg download
+        downloadEl.addEventListener("click", () => {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d")!;
+
+          canvas.width = WIDTH;
+          canvas.height = WIDTH;
+
+          const image = new Image();
+          image.addEventListener(
+            "load",
+            () => {
+              context.fillStyle = context.createPattern(image, "no-repeat")!;
+              context.fillRect(0, 0, canvas.width, canvas.height);
+              download(canvas.toDataURL("image/png"), "qrcode.png");
+              canvas.remove();
+            },
+            { once: true }
+          );
+
+          image.src = "data:image/svg+xml;base64," + btoa(svg);
+        });
+
+        // Handle query param
+        const initialText = new URLSearchParams(window.location.search).get(
+          "qr_text"
+        );
+        if (initialText && initialText !== "") {
+          createQr(initialText);
+        }
+      </script>
+    </div>
   </body>
 </html>
