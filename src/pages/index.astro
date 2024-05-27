@@ -64,27 +64,31 @@ const description = "Generate unlimited QR Codes with ease for free";
             >Reset</a
           >
         </div>
-        <div
-          id="qr"
-          class="aspect-square max-w-96 mt-6 -mx-4 [&>svg]:dark:invert"
-        >
-          <div class="h-full w-full p-4">
-            <div
-              class="h-full w-full bg-stone-100 dark:bg-stone-900 flex items-center justify-center text-center"
-            >
-              <p class="text-balance text-lg">
-                Type something in the box above and hit "Generate"!
-              </p>
-            </div>
+        <div id="qr" class="aspect-square max-w-96 mt-6 [&>svg]:dark:invert">
+          <div
+            class="h-full w-full bg-stone-100 dark:bg-stone-900 flex items-center justify-center text-center"
+          >
+            <p class="text-balance text-lg">
+              Type something in the box above and hit "Generate"!
+            </p>
           </div>
         </div>
-        <button
-          id="download"
-          disabled
-          type="button"
-          class="bg-blue-700 text-blue-50 text-lg text-center mt-2 px-2 py-1.5 w-full disabled:opacity-50 hover:brightness-90 disabled:hover:brightness-100"
-          >Download</button
-        >
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <button
+            id="download"
+            disabled
+            type="button"
+            class="bg-blue-700 text-blue-50 text-lg text-center px-2 py-1.5 disabled:opacity-50 hover:brightness-90 disabled:hover:brightness-100"
+            >Download</button
+          >
+          <button
+            id="copy"
+            disabled
+            type="button"
+            class="bg-blue-700 text-blue-50 text-lg text-center px-2 py-1.5 disabled:opacity-50 hover:brightness-90 disabled:hover:brightness-100"
+            >Copy</button
+          >
+        </div>
         <a
           href="https://github.com/florian-lefebvre/qr-generator"
           target="_blank"
@@ -105,7 +109,7 @@ const description = "Generate unlimited QR Codes with ease for free";
         import { renderSVG } from "uqr";
 
         // Initialize constants
-        let svg = "";
+        let dataUrl = "";
         const WIDTH = 1024;
         const formEl = document.getElementById("form")! as HTMLFormElement;
         const qrTextEl = document.getElementById(
@@ -115,6 +119,7 @@ const description = "Generate unlimited QR Codes with ease for free";
         const downloadEl = document.getElementById(
           "download"
         )! as HTMLButtonElement;
+        const copyEl = document.getElementById("copy")! as HTMLButtonElement;
 
         // Helper function to trigger a file download
         const download = (href: string, name: string) => {
@@ -130,9 +135,26 @@ const description = "Generate unlimited QR Codes with ease for free";
 
         // Updates state
         const createQr = (text: string) => {
-          svg = renderSVG(text);
-          qrEl.innerHTML = svg;
+          const svg = renderSVG(text);
+          dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`;
+          qrEl.innerHTML = `<img id="qr-img" src="${dataUrl}" />`;
           downloadEl.disabled = false;
+          copyEl.disabled = false;
+        };
+
+        const svgToPng = () => {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d")!;
+
+          canvas.width = WIDTH;
+          canvas.height = WIDTH;
+
+          const image = document.getElementById("qr-img")! as HTMLImageElement;
+          context.fillStyle = context.createPattern(image, "no-repeat")!;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL("image/png");
+          canvas.remove();
+          return dataUrl;
         };
 
         qrTextEl.addEventListener("keydown", (e) => {
@@ -143,25 +165,17 @@ const description = "Generate unlimited QR Codes with ease for free";
 
         // Handle svg download
         downloadEl.addEventListener("click", () => {
-          const canvas = document.createElement("canvas");
-          const context = canvas.getContext("2d")!;
+          download(svgToPng(), "qrcode.png");
+        });
 
-          canvas.width = WIDTH;
-          canvas.height = WIDTH;
-
-          const image = new Image();
-          image.addEventListener(
-            "load",
-            () => {
-              context.fillStyle = context.createPattern(image, "no-repeat")!;
-              context.fillRect(0, 0, canvas.width, canvas.height);
-              download(canvas.toDataURL("image/png"), "qrcode.png");
-              canvas.remove();
-            },
-            { once: true }
-          );
-
-          image.src = "data:image/svg+xml;base64," + btoa(svg);
+        copyEl.addEventListener("click", async () => {
+          const blob = await fetch(svgToPng()).then((res) => res.blob());
+          window.navigator.clipboard.write([
+            new ClipboardItem({
+              "image/png": blob,
+            }),
+          ]);
+          alert("Copied");
         });
 
         // Handle query param
