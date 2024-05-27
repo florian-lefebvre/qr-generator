@@ -3,14 +3,84 @@
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+  </head>
+  <body>
+    <h1>Astro</h1>
+    <form>
+      <label for="qr_text">Text</label>
+      <input id="qr_text" name="qr_text" type="text" />
+      <button type="submit">Generate</button>
+    </form>
+    <div id="qr"></div>
+    <button id="download" disabled type="button">Download</button>
+    <script>
+      import { renderSVG } from "uqr";
+
+	  // Initialize constants
+      let svg = "";
+      const WIDTH = 1024;
+      const qrTextEl = document.getElementById("qr_text")! as HTMLInputElement;
+      const qrEl = document.getElementById("qr")! as HTMLDivElement;
+      const downloadEl = document.getElementById(
+        "download"
+      )! as HTMLButtonElement;
+
+	  // Helper function to trigger a file download
+      const download = (href: string, name: string) => {
+        const a = document.createElement("a");
+
+        a.download = name;
+        a.href = href;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+	  // Updates state
+      const createQr = (text: string) => {
+        svg = renderSVG(text);
+        qrEl.innerHTML = svg;
+        downloadEl.disabled = false;
+      };
+
+	  // Handle svg download
+      downloadEl.addEventListener("click", () => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!;
+
+        canvas.width = WIDTH;
+        canvas.height = WIDTH;
+
+        const image = new Image();
+        image.addEventListener(
+          "load",
+          () => {
+            context.fillStyle = context.createPattern(image, "no-repeat")!;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            download(canvas.toDataURL("image/png"), "qrcode.png");
+            canvas.remove();
+          },
+          { once: true }
+        );
+
+        image.src = "data:image/svg+xml;base64," + btoa(svg);
+      });
+
+	  // Handle query param
+      const initialText = new URLSearchParams(window.location.search).get(
+        "qr_text"
+      );
+      if (initialText) {
+        qrTextEl.value = initialText;
+        createQr(initialText);
+      }
+    </script>
+  </body>
 </html>
